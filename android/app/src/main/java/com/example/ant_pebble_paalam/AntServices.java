@@ -23,7 +23,7 @@ import java.util.HashMap;
 public class AntServices {
 
   /** Generated class from Pigeon that represents data sent in messages. */
-  public static class Device {
+  public static class DeviceInfo {
     private @NonNull String deviceName;
     public @NonNull String getDeviceName() { return deviceName; }
     public void setDeviceName(@NonNull String setterArg) {
@@ -33,61 +33,59 @@ public class AntServices {
       this.deviceName = setterArg;
     }
 
+    private @NonNull Long deviceNumber;
+    public @NonNull Long getDeviceNumber() { return deviceNumber; }
+    public void setDeviceNumber(@NonNull Long setterArg) {
+      if (setterArg == null) {
+        throw new IllegalStateException("Nonnull field \"deviceNumber\" is null.");
+      }
+      this.deviceNumber = setterArg;
+    }
+
     /** Constructor is private to enforce null safety; use Builder. */
-    private Device() {}
+    private DeviceInfo() {}
     public static final class Builder {
       private @Nullable String deviceName;
       public @NonNull Builder setDeviceName(@NonNull String setterArg) {
         this.deviceName = setterArg;
         return this;
       }
-      public @NonNull Device build() {
-        Device pigeonReturn = new Device();
+      private @Nullable Long deviceNumber;
+      public @NonNull Builder setDeviceNumber(@NonNull Long setterArg) {
+        this.deviceNumber = setterArg;
+        return this;
+      }
+      public @NonNull DeviceInfo build() {
+        DeviceInfo pigeonReturn = new DeviceInfo();
         pigeonReturn.setDeviceName(deviceName);
+        pigeonReturn.setDeviceNumber(deviceNumber);
         return pigeonReturn;
       }
     }
     @NonNull Map<String, Object> toMap() {
       Map<String, Object> toMapResult = new HashMap<>();
       toMapResult.put("deviceName", deviceName);
+      toMapResult.put("deviceNumber", deviceNumber);
       return toMapResult;
     }
-    static @NonNull Device fromMap(@NonNull Map<String, Object> map) {
-      Device pigeonResult = new Device();
+    static @NonNull DeviceInfo fromMap(@NonNull Map<String, Object> map) {
+      DeviceInfo pigeonResult = new DeviceInfo();
       Object deviceName = map.get("deviceName");
       pigeonResult.setDeviceName((String)deviceName);
+      Object deviceNumber = map.get("deviceNumber");
+      pigeonResult.setDeviceNumber((deviceNumber == null) ? null : ((deviceNumber instanceof Integer) ? (Integer)deviceNumber : (Long)deviceNumber));
       return pigeonResult;
     }
   }
   private static class AntApiCodec extends StandardMessageCodec {
     public static final AntApiCodec INSTANCE = new AntApiCodec();
     private AntApiCodec() {}
-    @Override
-    protected Object readValueOfType(byte type, ByteBuffer buffer) {
-      switch (type) {
-        case (byte)128:         
-          return Device.fromMap((Map<String, Object>) readValue(buffer));
-        
-        default:        
-          return super.readValueOfType(type, buffer);
-        
-      }
-    }
-    @Override
-    protected void writeValue(ByteArrayOutputStream stream, Object value)     {
-      if (value instanceof Device) {
-        stream.write(128);
-        writeValue(stream, ((Device) value).toMap());
-      } else 
-{
-        super.writeValue(stream, value);
-      }
-    }
   }
 
   /** Generated interface from Pigeon that represents a handler of messages from Flutter.*/
   public interface AntApi {
-    @NonNull List<Device> searchDevices();
+    void searchDevices();
+    void connectToDevice(@NonNull Long deviceNumber);
 
     /** The codec used by AntApi. */
     static MessageCodec<Object> getCodec() {
@@ -103,8 +101,8 @@ public class AntServices {
           channel.setMessageHandler((message, reply) -> {
             Map<String, Object> wrapped = new HashMap<>();
             try {
-              List<Device> output = api.searchDevices();
-              wrapped.put("result", output);
+              api.searchDevices();
+              wrapped.put("result", null);
             }
             catch (Error | RuntimeException exception) {
               wrapped.put("error", wrapError(exception));
@@ -115,6 +113,77 @@ public class AntServices {
           channel.setMessageHandler(null);
         }
       }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.AntApi.connectToDevice", getCodec());
+        if (api != null) {
+          channel.setMessageHandler((message, reply) -> {
+            Map<String, Object> wrapped = new HashMap<>();
+            try {
+              ArrayList<Object> args = (ArrayList<Object>)message;
+              Number deviceNumberArg = (Number)args.get(0);
+              if (deviceNumberArg == null) {
+                throw new NullPointerException("deviceNumberArg unexpectedly null.");
+              }
+              api.connectToDevice((deviceNumberArg == null) ? null : deviceNumberArg.longValue());
+              wrapped.put("result", null);
+            }
+            catch (Error | RuntimeException exception) {
+              wrapped.put("error", wrapError(exception));
+            }
+            reply.reply(wrapped);
+          });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+    }
+  }
+  private static class AntCallBacksCodec extends StandardMessageCodec {
+    public static final AntCallBacksCodec INSTANCE = new AntCallBacksCodec();
+    private AntCallBacksCodec() {}
+    @Override
+    protected Object readValueOfType(byte type, ByteBuffer buffer) {
+      switch (type) {
+        case (byte)128:         
+          return DeviceInfo.fromMap((Map<String, Object>) readValue(buffer));
+        
+        default:        
+          return super.readValueOfType(type, buffer);
+        
+      }
+    }
+    @Override
+    protected void writeValue(ByteArrayOutputStream stream, Object value)     {
+      if (value instanceof DeviceInfo) {
+        stream.write(128);
+        writeValue(stream, ((DeviceInfo) value).toMap());
+      } else 
+{
+        super.writeValue(stream, value);
+      }
+    }
+  }
+
+  /** Generated class from Pigeon that represents Flutter messages that can be called from Java.*/
+  public static class AntCallBacks {
+    private final BinaryMessenger binaryMessenger;
+    public AntCallBacks(BinaryMessenger argBinaryMessenger){
+      this.binaryMessenger = argBinaryMessenger;
+    }
+    public interface Reply<T> {
+      void reply(T reply);
+    }
+    static MessageCodec<Object> getCodec() {
+      return AntCallBacksCodec.INSTANCE;
+    }
+
+    public void devicesFound(@NonNull List<DeviceInfo> devicesArg, Reply<Void> callback) {
+      BasicMessageChannel<Object> channel =
+          new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.AntCallBacks.devicesFound", getCodec());
+      channel.send(new ArrayList<Object>(Arrays.asList(devicesArg)), channelReply -> {
+        callback.reply(null);
+      });
     }
   }
   private static Map<String, Object> wrapError(Throwable exception) {

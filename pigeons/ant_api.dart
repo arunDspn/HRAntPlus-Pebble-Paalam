@@ -1,11 +1,20 @@
 import 'package:pigeon/pigeon.dart';
 
-class Device{
+class DeviceInfo {
   final String deviceName;
+  final int deviceNumber;
 
-  Device(this.deviceName);
+  DeviceInfo(this.deviceName, this.deviceNumber);
 }
+
 @HostApi()
-abstract class AntApi{
-  List<Device> searchDevices();
+abstract class AntApi {
+  void searchDevices();
+  void connectToDevice(int deviceNumber);
+  // Stream<int> subscribeToHeartRateData();
+}
+
+@FlutterApi()
+abstract class AntCallBacks {
+  void devicesFound(List<DeviceInfo> devices);
 }

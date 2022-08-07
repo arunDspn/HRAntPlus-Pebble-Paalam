@@ -7,50 +7,33 @@ import 'dart:typed_data' show Uint8List, Int32List, Int64List, Float64List;
 import 'package:flutter/foundation.dart' show WriteBuffer, ReadBuffer;
 import 'package:flutter/services.dart';
 
-class Device {
-  Device({
+class DeviceInfo {
+  DeviceInfo({
     required this.deviceName,
+    required this.deviceNumber,
   });
 
   String deviceName;
+  int deviceNumber;
 
   Object encode() {
     final Map<Object?, Object?> pigeonMap = <Object?, Object?>{};
     pigeonMap['deviceName'] = deviceName;
+    pigeonMap['deviceNumber'] = deviceNumber;
     return pigeonMap;
   }
 
-  static Device decode(Object message) {
+  static DeviceInfo decode(Object message) {
     final Map<Object?, Object?> pigeonMap = message as Map<Object?, Object?>;
-    return Device(
+    return DeviceInfo(
       deviceName: pigeonMap['deviceName']! as String,
+      deviceNumber: pigeonMap['deviceNumber']! as int,
     );
   }
 }
 
 class _AntApiCodec extends StandardMessageCodec {
   const _AntApiCodec();
-  @override
-  void writeValue(WriteBuffer buffer, Object? value) {
-    if (value is Device) {
-      buffer.putUint8(128);
-      writeValue(buffer, value.encode());
-    } else 
-{
-      super.writeValue(buffer, value);
-    }
-  }
-  @override
-  Object? readValueOfType(int type, ReadBuffer buffer) {
-    switch (type) {
-      case 128:       
-        return Device.decode(readValue(buffer)!);
-      
-      default:      
-        return super.readValueOfType(type, buffer);
-      
-    }
-  }
 }
 
 class AntApi {
@@ -63,7 +46,7 @@ class AntApi {
 
   static const MessageCodec<Object?> codec = _AntApiCodec();
 
-  Future<List<Device?>> searchDevices() async {
+  Future<void> searchDevices() async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
         'dev.flutter.pigeon.AntApi.searchDevices', codec, binaryMessenger: _binaryMessenger);
     final Map<Object?, Object?>? replyMap =
@@ -80,13 +63,78 @@ class AntApi {
         message: error['message'] as String?,
         details: error['details'],
       );
-    } else if (replyMap['result'] == null) {
+    } else {
+      return;
+    }
+  }
+
+  Future<void> connectToDevice(int arg_deviceNumber) async {
+    final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.AntApi.connectToDevice', codec, binaryMessenger: _binaryMessenger);
+    final Map<Object?, Object?>? replyMap =
+        await channel.send(<Object?>[arg_deviceNumber]) as Map<Object?, Object?>?;
+    if (replyMap == null) {
       throw PlatformException(
-        code: 'null-error',
-        message: 'Host platform returned null value for non-null return value.',
+        code: 'channel-error',
+        message: 'Unable to establish connection on channel.',
+      );
+    } else if (replyMap['error'] != null) {
+      final Map<Object?, Object?> error = (replyMap['error'] as Map<Object?, Object?>?)!;
+      throw PlatformException(
+        code: (error['code'] as String?)!,
+        message: error['message'] as String?,
+        details: error['details'],
       );
     } else {
-      return (replyMap['result'] as List<Object?>?)!.cast<Device?>();
+      return;
+    }
+  }
+}
+
+class _AntCallBacksCodec extends StandardMessageCodec {
+  const _AntCallBacksCodec();
+  @override
+  void writeValue(WriteBuffer buffer, Object? value) {
+    if (value is DeviceInfo) {
+      buffer.putUint8(128);
+      writeValue(buffer, value.encode());
+    } else 
+{
+      super.writeValue(buffer, value);
+    }
+  }
+  @override
+  Object? readValueOfType(int type, ReadBuffer buffer) {
+    switch (type) {
+      case 128:       
+        return DeviceInfo.decode(readValue(buffer)!);
+      
+      default:      
+        return super.readValueOfType(type, buffer);
+      
+    }
+  }
+}
+abstract class AntCallBacks {
+  static const MessageCodec<Object?> codec = _AntCallBacksCodec();
+
+  void devicesFound(List<DeviceInfo?> devices);
+  static void setup(AntCallBacks? api, {BinaryMessenger? binaryMessenger}) {
+    {
+      final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.AntCallBacks.devicesFound', codec, binaryMessenger: binaryMessenger);
+      if (api == null) {
+        channel.setMessageHandler(null);
+      } else {
+        channel.setMessageHandler((Object? message) async {
+          assert(message != null, 'Argument for dev.flutter.pigeon.AntCallBacks.devicesFound was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final List<DeviceInfo?>? arg_devices = (args[0] as List<Object?>?)?.cast<DeviceInfo?>();
+          assert(arg_devices != null, 'Argument for dev.flutter.pigeon.AntCallBacks.devicesFound was null, expected non-null List<DeviceInfo?>.');
+          api.devicesFound(arg_devices!);
+          return;
+        });
+      }
     }
   }
 }
