@@ -47,7 +47,11 @@ public class MainActivity extends FlutterActivity {
         @Override
         public void connectToDevice(@NonNull Long deviceNumber) {
             PccReleaseHandle<AntPlusHeartRatePcc> handle =  AntPlusHeartRatePcc.requestAccess(getContext(),deviceNumber.intValue(),1,resultReceiver,deviceStateChangeReceiver);
+        }
 
+        @Override
+        public void disconnectDevice() {
+            hRR.releaseAccess();
         }
     }
 
@@ -72,7 +76,7 @@ public class MainActivity extends FlutterActivity {
                     final AntServices.DeviceInfo device = new AntServices.DeviceInfo.Builder().setDeviceNumber(new Long(multiDeviceSearchResult.getAntDeviceNumber())).setDeviceName(multiDeviceSearchResult.getDeviceDisplayName()).build();
                     final List<AntServices.DeviceInfo> result = new ArrayList<>();
                     result.add(device);
-                    handler.post(() -> antCallBacks.devicesFound(result, reply -> System.out.println("Result sent")));
+                    handler.post(() -> antCallBacks.devicesFound(result, reply -> System.out.println("Found Device Result sent")));
                 }
 
                 @Override
@@ -91,12 +95,33 @@ public class MainActivity extends FlutterActivity {
     public AntPluginPcc.IPluginAccessResultReceiver<AntPlusHeartRatePcc> resultReceiver = new AntPluginPcc.IPluginAccessResultReceiver<AntPlusHeartRatePcc>() {
         @Override
         public void onResultReceived(AntPlusHeartRatePcc antPlusHeartRatePcc, RequestAccessResult requestAccessResult, DeviceState deviceState) {
-            System.out.println("Result Received" + deviceState.toString());
+            System.out.println("Result Received - Result :-" + requestAccessResult.toString());
+            System.out.println("Device state" + deviceState.toString());
+            handler = new Handler(Looper.getMainLooper());
+            switch (requestAccessResult){
+                case SUCCESS :
+                    handler.post(()-> antCallBacks.deviceConnectionStatus(true, antPlusHeartRatePcc.getDeviceName(),reply -> System.out.println("Success connection callbacks")));
+                    this.subscribeToHeartRateData(antPlusHeartRatePcc);
+                    break;
+                case DEVICE_ALREADY_IN_USE :
+                    System.out.println("Already in use");
+                    handler.post(()-> antCallBacks.deviceConnectionStatus(false,null,reply -> System.out.println("Success connection callbacks")));
+                    break;
+                default :
+                    handler.post(()-> antCallBacks.deviceConnectionStatus(false,null,reply -> System.out.println("Success connection callbacks")));
+                    System.out.println("Default handler");
+            }
+
+        }
+
+        // Subscribing to Heart rate dataset
+        public void subscribeToHeartRateData(AntPlusHeartRatePcc antPlusHeartRatePcc){
+            // info flutter about it :-)
             hRR = antPlusHeartRatePcc;
             hRR.subscribeHeartRateDataEvent(new AntPlusHeartRatePcc.IHeartRateDataReceiver() {
                 @Override
                 public void onNewHeartRateData(long l, EnumSet<EventFlag> enumSet, int i, long l1, BigDecimal bigDecimal, AntPlusHeartRatePcc.DataState dataState) {
-                    System.out.println(dataState);
+                    System.out.println(dataState.getIntValue());
                 }
             });
         }
@@ -106,7 +131,15 @@ public class MainActivity extends FlutterActivity {
     AntPluginPcc.IDeviceStateChangeReceiver deviceStateChangeReceiver = new AntPluginPcc.IDeviceStateChangeReceiver() {
         @Override
         public void onDeviceStateChange(DeviceState deviceState) {
-            System.out.println(deviceState.toString() + "State Changed ---");
+            System.out.println(deviceState.toString() + "State Changed ---" + deviceState);
+            switch (deviceState){
+                case DEAD :
+                    hRR.releaseAccess();
+                    break;
+                default:
+                    System.out.println("Another");
+
+            }
         }
     };
 

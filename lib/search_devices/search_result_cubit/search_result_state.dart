@@ -26,3 +26,9 @@ class SearchResultFailed extends SearchResultState {
   @override
   List<Object> get props => [];
 }
+
+/// Used to close search result modal
+class SearchResultDone extends SearchResultState {
+  @override
+  List<Object> get props => [];
+}

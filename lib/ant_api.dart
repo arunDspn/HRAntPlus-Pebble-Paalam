@@ -89,6 +89,28 @@ class AntApi {
       return;
     }
   }
+
+  Future<void> disconnectDevice() async {
+    final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.AntApi.disconnectDevice', codec, binaryMessenger: _binaryMessenger);
+    final Map<Object?, Object?>? replyMap =
+        await channel.send(null) as Map<Object?, Object?>?;
+    if (replyMap == null) {
+      throw PlatformException(
+        code: 'channel-error',
+        message: 'Unable to establish connection on channel.',
+      );
+    } else if (replyMap['error'] != null) {
+      final Map<Object?, Object?> error = (replyMap['error'] as Map<Object?, Object?>?)!;
+      throw PlatformException(
+        code: (error['code'] as String?)!,
+        message: error['message'] as String?,
+        details: error['details'],
+      );
+    } else {
+      return;
+    }
+  }
 }
 
 class _AntCallBacksCodec extends StandardMessageCodec {
@@ -119,6 +141,7 @@ abstract class AntCallBacks {
   static const MessageCodec<Object?> codec = _AntCallBacksCodec();
 
   void devicesFound(List<DeviceInfo?> devices);
+  void deviceConnectionStatus(bool success, String? deviceName);
   static void setup(AntCallBacks? api, {BinaryMessenger? binaryMessenger}) {
     {
       final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
@@ -132,6 +155,23 @@ abstract class AntCallBacks {
           final List<DeviceInfo?>? arg_devices = (args[0] as List<Object?>?)?.cast<DeviceInfo?>();
           assert(arg_devices != null, 'Argument for dev.flutter.pigeon.AntCallBacks.devicesFound was null, expected non-null List<DeviceInfo?>.');
           api.devicesFound(arg_devices!);
+          return;
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.AntCallBacks.deviceConnectionStatus', codec, binaryMessenger: binaryMessenger);
+      if (api == null) {
+        channel.setMessageHandler(null);
+      } else {
+        channel.setMessageHandler((Object? message) async {
+          assert(message != null, 'Argument for dev.flutter.pigeon.AntCallBacks.deviceConnectionStatus was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final bool? arg_success = (args[0] as bool?);
+          assert(arg_success != null, 'Argument for dev.flutter.pigeon.AntCallBacks.deviceConnectionStatus was null, expected non-null bool.');
+          final String? arg_deviceName = (args[1] as String?);
+          api.deviceConnectionStatus(arg_success!, arg_deviceName);
           return;
         });
       }

@@ -10,4 +10,8 @@ class SearchResultCubit extends Cubit<SearchResultState> {
   void gotDevices(List<DeviceInfo?> devices) {
     emit(SearchResultLoaded(devices));
   }
+
+  void closeSearchResult() {
+    emit(SearchResultDone());
+  }
 }

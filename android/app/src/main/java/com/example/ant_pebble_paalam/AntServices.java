@@ -86,6 +86,7 @@ public class AntServices {
   public interface AntApi {
     void searchDevices();
     void connectToDevice(@NonNull Long deviceNumber);
+    void disconnectDevice();
 
     /** The codec used by AntApi. */
     static MessageCodec<Object> getCodec() {
@@ -126,6 +127,25 @@ public class AntServices {
                 throw new NullPointerException("deviceNumberArg unexpectedly null.");
               }
               api.connectToDevice((deviceNumberArg == null) ? null : deviceNumberArg.longValue());
+              wrapped.put("result", null);
+            }
+            catch (Error | RuntimeException exception) {
+              wrapped.put("error", wrapError(exception));
+            }
+            reply.reply(wrapped);
+          });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.AntApi.disconnectDevice", getCodec());
+        if (api != null) {
+          channel.setMessageHandler((message, reply) -> {
+            Map<String, Object> wrapped = new HashMap<>();
+            try {
+              api.disconnectDevice();
               wrapped.put("result", null);
             }
             catch (Error | RuntimeException exception) {
@@ -182,6 +202,13 @@ public class AntServices {
       BasicMessageChannel<Object> channel =
           new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.AntCallBacks.devicesFound", getCodec());
       channel.send(new ArrayList<Object>(Arrays.asList(devicesArg)), channelReply -> {
+        callback.reply(null);
+      });
+    }
+    public void deviceConnectionStatus(@NonNull Boolean successArg, @Nullable String deviceNameArg, Reply<Void> callback) {
+      BasicMessageChannel<Object> channel =
+          new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.AntCallBacks.deviceConnectionStatus", getCodec());
+      channel.send(new ArrayList<Object>(Arrays.asList(successArg, deviceNameArg)), channelReply -> {
         callback.reply(null);
       });
     }

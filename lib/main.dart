@@ -1,3 +1,5 @@
+import 'package:ant_pebble_paalam/home/antplus_status/cubit/ant_plus_connection_status_cubit.dart';
+import 'package:ant_pebble_paalam/search_devices/connect_ant_device_cubit/connect_ant_device_cubit.dart';
 import 'package:ant_pebble_paalam/search_devices/search_result_cubit/search_result_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -19,7 +21,13 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider(
           create: (_) => SearchResultCubit(),
-        )
+        ),
+        BlocProvider(
+          create: (_) => ConnectAntDeviceCubit(),
+        ),
+        BlocProvider(
+          create: (_) => AntPlusConnectionStatusCubit(),
+        ),
       ],
       child: MaterialApp(
         title: 'Pebble Ant Paalam',
