@@ -1,36 +1,30 @@
 package com.example.ant_pebble_paalam;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.View;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import io.flutter.embedding.android.FlutterActivity;
-
+import com.dsi.ant.plugins.antplus.pcc.AntPlusHeartRatePcc;
 import com.dsi.ant.plugins.antplus.pcc.MultiDeviceSearch;
 import com.dsi.ant.plugins.antplus.pcc.defines.DeviceState;
 import com.dsi.ant.plugins.antplus.pcc.defines.DeviceType;
 import com.dsi.ant.plugins.antplus.pcc.defines.EventFlag;
 import com.dsi.ant.plugins.antplus.pcc.defines.RequestAccessResult;
-import com.dsi.ant.plugins.antplus.pcc.AntPlusHeartRatePcc;
-import com.dsi.ant.plugins.antplus.pccbase.PccReleaseHandle;
-import com.example.ant_pebble_paalam.AntServices;
-
 import com.dsi.ant.plugins.antplus.pccbase.AntPluginPcc;
-
+import com.dsi.ant.plugins.antplus.pccbase.PccReleaseHandle;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
+import io.flutter.embedding.android.FlutterActivity;
+
 public class MainActivity extends FlutterActivity {
+    String streamChannel = "com.example.ant_pebble_paalam/streamChannelgit";
     AntPlusHeartRatePcc hRR = null;
     private AntServices.AntCallBacks antCallBacks;
     private Handler handler;
@@ -41,7 +35,7 @@ public class MainActivity extends FlutterActivity {
         public void searchDevices() {
             EnumSet<DeviceType> hrDevices;
             hrDevices = EnumSet.of(DeviceType.HEARTRATE);
-            new MultiDeviceSearch(getContext(),hrDevices,new AntPlusServices().mCallback);
+            new MultiDeviceSearch(getContext(),hrDevices, mCallback);
         }
 
         @Override
@@ -55,77 +49,77 @@ public class MainActivity extends FlutterActivity {
         }
     }
 
-    private class AntPlusServices {
+    /**
+     * Callbacks from the multi-device search interface
+     */
+    public final MultiDeviceSearch.SearchCallbacks mCallback;
 
-        /**
-         * Callbacks from the multi-device search interface
-         */
-        private final MultiDeviceSearch.SearchCallbacks mCallback;
+    {
+        mCallback = new MultiDeviceSearch.SearchCallbacks() {
+            @Override
+            public void onSearchStarted(MultiDeviceSearch.RssiSupport rssiSupport) {
+                System.out.println("Started");
+            }
 
-        {
-            mCallback = new MultiDeviceSearch.SearchCallbacks() {
-                @Override
-                public void onSearchStarted(MultiDeviceSearch.RssiSupport rssiSupport) {
-                    System.out.println("Started");
-                }
+            @Override
+            public void onDeviceFound(com.dsi.ant.plugins.antplus.pccbase.MultiDeviceSearch.MultiDeviceSearchResult multiDeviceSearchResult) {
+                System.out.println("Found Device");
+                handler = new Handler(Looper.getMainLooper());
+                final AntServices.DeviceInfo device = new AntServices.DeviceInfo.Builder().setDeviceNumber(new Long(multiDeviceSearchResult.getAntDeviceNumber())).setDeviceName(multiDeviceSearchResult.getDeviceDisplayName()).build();
+                final List<AntServices.DeviceInfo> result = new ArrayList<>();
+                result.add(device);
+                handler.post(() -> antCallBacks.devicesFound(result, reply -> System.out.println("Found Device Result sent")));
+            }
 
-                @Override
-                public void onDeviceFound(com.dsi.ant.plugins.antplus.pccbase.MultiDeviceSearch.MultiDeviceSearchResult multiDeviceSearchResult) {
-                    System.out.println("Found Device");
-                    handler = new Handler(Looper.getMainLooper());
-                    final AntServices.DeviceInfo device = new AntServices.DeviceInfo.Builder().setDeviceNumber(new Long(multiDeviceSearchResult.getAntDeviceNumber())).setDeviceName(multiDeviceSearchResult.getDeviceDisplayName()).build();
-                    final List<AntServices.DeviceInfo> result = new ArrayList<>();
-                    result.add(device);
-                    handler.post(() -> antCallBacks.devicesFound(result, reply -> System.out.println("Found Device Result sent")));
-                }
+            @Override
+            public void onSearchStopped(RequestAccessResult requestAccessResult) {
+                System.out.println("Started Stopped");
+            }
 
-                @Override
-                public void onSearchStopped(RequestAccessResult requestAccessResult) {
-                    System.out.println("Started Stopped");
-                }
-
-
-            };
-        }
-
+            ;
+        };
     }
 
     // For Request Access callbacks interface impl
     // Result receiver
-    public AntPluginPcc.IPluginAccessResultReceiver<AntPlusHeartRatePcc> resultReceiver = new AntPluginPcc.IPluginAccessResultReceiver<AntPlusHeartRatePcc>() {
-        @Override
-        public void onResultReceived(AntPlusHeartRatePcc antPlusHeartRatePcc, RequestAccessResult requestAccessResult, DeviceState deviceState) {
-            System.out.println("Result Received - Result :-" + requestAccessResult.toString());
-            System.out.println("Device state" + deviceState.toString());
-            handler = new Handler(Looper.getMainLooper());
-            switch (requestAccessResult){
-                case SUCCESS :
-                    handler.post(()-> antCallBacks.deviceConnectionStatus(true, antPlusHeartRatePcc.getDeviceName(),reply -> System.out.println("Success connection callbacks")));
-                    this.subscribeToHeartRateData(antPlusHeartRatePcc);
-                    break;
-                case DEVICE_ALREADY_IN_USE :
-                    System.out.println("Already in use");
-                    handler.post(()-> antCallBacks.deviceConnectionStatus(false,null,reply -> System.out.println("Success connection callbacks")));
-                    break;
-                default :
-                    handler.post(()-> antCallBacks.deviceConnectionStatus(false,null,reply -> System.out.println("Success connection callbacks")));
-                    System.out.println("Default handler");
+    public AntPluginPcc.IPluginAccessResultReceiver<AntPlusHeartRatePcc> resultReceiver;
+
+    {
+        resultReceiver = new AntPluginPcc.IPluginAccessResultReceiver<AntPlusHeartRatePcc>() {
+            @Override
+            public void onResultReceived(AntPlusHeartRatePcc antPlusHeartRatePcc, RequestAccessResult requestAccessResult, DeviceState deviceState) {
+                System.out.println("Result Received - Result :-" + requestAccessResult.toString());
+                System.out.println("Device state" + deviceState.toString());
+                handler = new Handler(Looper.getMainLooper());
+                switch (requestAccessResult) {
+                    case SUCCESS:
+                        handler.post(() -> antCallBacks.deviceConnectionStatus(true, antPlusHeartRatePcc.getDeviceName(), reply -> System.out.println("Success connection callbacks")));
+                        this.subscribeToHeartRateData(antPlusHeartRatePcc);
+                        break;
+                    case DEVICE_ALREADY_IN_USE:
+                        System.out.println("Already in use");
+                        handler.post(() -> antCallBacks.deviceConnectionStatus(false, null, reply -> System.out.println("Success connection callbacks")));
+                        break;
+                    default:
+                        handler.post(() -> antCallBacks.deviceConnectionStatus(false, null, reply -> System.out.println("Success connection callbacks")));
+                        System.out.println("Default handler");
+                }
+
             }
 
-        }
-
-        // Subscribing to Heart rate dataset
-        public void subscribeToHeartRateData(AntPlusHeartRatePcc antPlusHeartRatePcc){
-            // info flutter about it :-)
-            hRR = antPlusHeartRatePcc;
-            hRR.subscribeHeartRateDataEvent(new AntPlusHeartRatePcc.IHeartRateDataReceiver() {
-                @Override
-                public void onNewHeartRateData(long l, EnumSet<EventFlag> enumSet, int i, long l1, BigDecimal bigDecimal, AntPlusHeartRatePcc.DataState dataState) {
-                    System.out.println(dataState.getIntValue());
-                }
-            });
-        }
-    };
+            // Subscribing to Heart rate dataset
+            public void subscribeToHeartRateData(AntPlusHeartRatePcc antPlusHeartRatePcc) {
+                // info flutter about it :-)
+                hRR = antPlusHeartRatePcc;
+                hRR.subscribeHeartRateDataEvent(new AntPlusHeartRatePcc.IHeartRateDataReceiver() {
+                    @Override
+                    public void onNewHeartRateData(long l, EnumSet<EventFlag> enumSet, int i, long l1, BigDecimal bigDecimal, AntPlusHeartRatePcc.DataState dataState) {
+                        System.out.println(dataState.getIntValue());
+                    }
+                });
+            }
+        };
+    }
 
     // State Changer imp for search devices
     AntPluginPcc.IDeviceStateChangeReceiver deviceStateChangeReceiver = new AntPluginPcc.IDeviceStateChangeReceiver() {

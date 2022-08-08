@@ -85,7 +85,7 @@ class AntPlusDeviceConnectionStatus extends StatelessWidget {
           Icons.check_circle,
           color: Colors.green,
         ),
-        const Text("Garmin HRM Dual"),
+        Text(deviceName),
         const SizedBox(
           width: 10,
         ),
