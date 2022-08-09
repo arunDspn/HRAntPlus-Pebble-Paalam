@@ -20,14 +20,18 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 
 import io.flutter.embedding.android.FlutterActivity;
+import io.flutter.plugin.common.EventChannel;
 
 public class MainActivity extends FlutterActivity {
-    String streamChannel = "com.example.ant_pebble_paalam/streamChannelgit";
+    final String heartRateChannel = "com.example.ant_pebble_paalam/streamChannel";
     AntPlusHeartRatePcc hRR = null;
     private AntServices.AntCallBacks antCallBacks;
     private Handler handler;
+    private HeartRateStream heartRateStream = new HeartRateStream();
+
 
     private class AntServiceApi implements AntServices.AntApi {
 
@@ -35,17 +39,22 @@ public class MainActivity extends FlutterActivity {
         public void searchDevices() {
             EnumSet<DeviceType> hrDevices;
             hrDevices = EnumSet.of(DeviceType.HEARTRATE);
-            new MultiDeviceSearch(getContext(),hrDevices, mCallback);
+            new MultiDeviceSearch(getContext(), hrDevices, mCallback);
         }
 
         @Override
         public void connectToDevice(@NonNull Long deviceNumber) {
-            PccReleaseHandle<AntPlusHeartRatePcc> handle =  AntPlusHeartRatePcc.requestAccess(getContext(),deviceNumber.intValue(),1,resultReceiver,deviceStateChangeReceiver);
+            PccReleaseHandle<AntPlusHeartRatePcc> handle = AntPlusHeartRatePcc.requestAccess(getContext(), deviceNumber.intValue(), 1, resultReceiver, deviceStateChangeReceiver);
         }
 
         @Override
         public void disconnectDevice() {
             hRR.releaseAccess();
+        }
+
+        @Override
+        public void subscribeToHeartRateData() {
+
         }
     }
 
@@ -90,6 +99,7 @@ public class MainActivity extends FlutterActivity {
             public void onResultReceived(AntPlusHeartRatePcc antPlusHeartRatePcc, RequestAccessResult requestAccessResult, DeviceState deviceState) {
                 System.out.println("Result Received - Result :-" + requestAccessResult.toString());
                 System.out.println("Device state" + deviceState.toString());
+                // create dynamically not like so
                 handler = new Handler(Looper.getMainLooper());
                 switch (requestAccessResult) {
                     case SUCCESS:
@@ -113,8 +123,13 @@ public class MainActivity extends FlutterActivity {
                 hRR = antPlusHeartRatePcc;
                 hRR.subscribeHeartRateDataEvent(new AntPlusHeartRatePcc.IHeartRateDataReceiver() {
                     @Override
-                    public void onNewHeartRateData(long l, EnumSet<EventFlag> enumSet, int i, long l1, BigDecimal bigDecimal, AntPlusHeartRatePcc.DataState dataState) {
+                    public void onNewHeartRateData(long l, EnumSet<EventFlag> enumSet,
+                                                   int i, long l1, BigDecimal bigDecimal,
+                                                   AntPlusHeartRatePcc.DataState dataState) {
                         System.out.println(dataState.getIntValue());
+                        // Call stream
+                        new Handler(Looper.getMainLooper()).post(() -> heartRateStream.addEvent(dataState.getIntValue() + i));
+
                     }
                 });
             }
@@ -126,8 +141,8 @@ public class MainActivity extends FlutterActivity {
         @Override
         public void onDeviceStateChange(DeviceState deviceState) {
             System.out.println(deviceState.toString() + "State Changed ---" + deviceState);
-            switch (deviceState){
-                case DEAD :
+            switch (deviceState) {
+                case DEAD:
                     hRR.releaseAccess();
                     break;
                 default:
@@ -141,7 +156,9 @@ public class MainActivity extends FlutterActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        AntServices.AntApi.setup(getFlutterEngine().getDartExecutor().getBinaryMessenger(),new AntServiceApi());
+        AntServices.AntApi.setup(Objects.requireNonNull(getFlutterEngine()).getDartExecutor().getBinaryMessenger(), new AntServiceApi());
         antCallBacks = new AntServices.AntCallBacks(getFlutterEngine().getDartExecutor().getBinaryMessenger());
+        new EventChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), heartRateChannel)
+                .setStreamHandler(heartRateStream);
     }
 }

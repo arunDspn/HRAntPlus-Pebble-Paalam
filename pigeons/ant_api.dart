@@ -12,7 +12,7 @@ abstract class AntApi {
   void searchDevices();
   void connectToDevice(int deviceNumber);
   void disconnectDevice();
-  // Stream<int> subscribeToHeartRateData();
+  void subscribeToHeartRateData();
 }
 
 @FlutterApi()

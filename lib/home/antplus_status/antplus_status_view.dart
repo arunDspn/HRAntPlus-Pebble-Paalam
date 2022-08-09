@@ -1,5 +1,6 @@
 import 'package:ant_pebble_paalam/ant_api.dart';
 import 'package:ant_pebble_paalam/home/antplus_status/cubit/ant_plus_connection_status_cubit.dart';
+import 'package:ant_pebble_paalam/home/heart_rate_status/cubit/heart_rate_data_cubit.dart';
 import 'package:ant_pebble_paalam/main.dart';
 import 'package:ant_pebble_paalam/search_devices/search_devices_modal.dart';
 import 'package:flutter/material.dart';
@@ -95,6 +96,7 @@ class AntPlusDeviceConnectionStatus extends StatelessWidget {
             context
                 .read<AntPlusConnectionStatusCubit>()
                 .connectionStatusChanged(false);
+            context.read<HeartRateDataCubit>().heartRateStatusChanged(false);
           },
           color: Colors.deepOrange,
           child: const Text('Disconnect'),

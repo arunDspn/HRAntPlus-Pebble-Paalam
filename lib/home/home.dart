@@ -1,5 +1,6 @@
 import 'package:ant_pebble_paalam/ant_api.dart';
 import 'package:ant_pebble_paalam/home/antplus_status/cubit/ant_plus_connection_status_cubit.dart';
+import 'package:ant_pebble_paalam/home/heart_rate_status/cubit/heart_rate_data_cubit.dart';
 import 'package:ant_pebble_paalam/main.dart';
 import 'package:ant_pebble_paalam/search_devices/connect_ant_device_cubit/connect_ant_device_cubit.dart';
 import 'package:ant_pebble_paalam/search_devices/search_devices_modal.dart';
@@ -81,5 +82,12 @@ class FlutterCallbacks extends AntCallBacks {
     context
         .read<AntPlusConnectionStatusCubit>()
         .connectionStatusChanged(success, deviceName: deviceName);
+
+    if (success){
+      context.read<HeartRateDataCubit>().heartRateStatusChanged(success);
+    }else{
+      context.read<HeartRateDataCubit>().heartRateStatusChanged(success);
+
+    }
   }
 }

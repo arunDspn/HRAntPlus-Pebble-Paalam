@@ -87,6 +87,7 @@ public class AntServices {
     void searchDevices();
     void connectToDevice(@NonNull Long deviceNumber);
     void disconnectDevice();
+    void subscribeToHeartRateData();
 
     /** The codec used by AntApi. */
     static MessageCodec<Object> getCodec() {
@@ -146,6 +147,25 @@ public class AntServices {
             Map<String, Object> wrapped = new HashMap<>();
             try {
               api.disconnectDevice();
+              wrapped.put("result", null);
+            }
+            catch (Error | RuntimeException exception) {
+              wrapped.put("error", wrapError(exception));
+            }
+            reply.reply(wrapped);
+          });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.AntApi.subscribeToHeartRateData", getCodec());
+        if (api != null) {
+          channel.setMessageHandler((message, reply) -> {
+            Map<String, Object> wrapped = new HashMap<>();
+            try {
+              api.subscribeToHeartRateData();
               wrapped.put("result", null);
             }
             catch (Error | RuntimeException exception) {
