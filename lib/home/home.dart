@@ -1,7 +1,9 @@
 import 'package:ant_pebble_paalam/ant_api.dart';
 import 'package:ant_pebble_paalam/home/antplus_status/cubit/ant_plus_connection_status_cubit.dart';
 import 'package:ant_pebble_paalam/home/heart_rate_status/cubit/heart_rate_data_cubit.dart';
+import 'package:ant_pebble_paalam/home/pebble_status/cubit/pebble_connection_status_cubit.dart';
 import 'package:ant_pebble_paalam/main.dart';
+import 'package:ant_pebble_paalam/pebble_api.dart';
 import 'package:ant_pebble_paalam/search_devices/connect_ant_device_cubit/connect_ant_device_cubit.dart';
 import 'package:ant_pebble_paalam/search_devices/search_devices_modal.dart';
 import 'package:ant_pebble_paalam/search_devices/search_result_cubit/search_result_cubit.dart';
@@ -83,11 +85,22 @@ class FlutterCallbacks extends AntCallBacks {
         .read<AntPlusConnectionStatusCubit>()
         .connectionStatusChanged(success, deviceName: deviceName);
 
-    if (success){
+    if (success) {
       context.read<HeartRateDataCubit>().heartRateStatusChanged(success);
-    }else{
+    } else {
       context.read<HeartRateDataCubit>().heartRateStatusChanged(success);
-
     }
+  }
+}
+
+class PebbleFlutterCallbacks extends PebbleCallBacks {
+  final BuildContext context;
+
+  PebbleFlutterCallbacks(this.context);
+  @override
+  void pebbleConnectionState(bool isConnected) {
+    context
+        .read<PebbleConnectionStatusCubit>()
+        .setConnectionStatus(isConnected);
   }
 }

@@ -15,12 +15,15 @@ import com.dsi.ant.plugins.antplus.pcc.defines.EventFlag;
 import com.dsi.ant.plugins.antplus.pcc.defines.RequestAccessResult;
 import com.dsi.ant.plugins.antplus.pccbase.AntPluginPcc;
 import com.dsi.ant.plugins.antplus.pccbase.PccReleaseHandle;
+import com.getpebble.android.kit.PebbleKit;
+import com.getpebble.android.kit.util.PebbleDictionary;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.plugin.common.EventChannel;
@@ -29,9 +32,18 @@ public class MainActivity extends FlutterActivity {
     final String heartRateChannel = "com.example.ant_pebble_paalam/streamChannel";
     AntPlusHeartRatePcc hRR = null;
     private AntServices.AntCallBacks antCallBacks;
+    private PebbleServices.PebbleCallBacks pebbleCallBacks;
     private Handler handler;
     private HeartRateStream heartRateStream = new HeartRateStream();
 
+    final UUID appUuid = UUID.fromString("604c3f86-77db-4574-aa2a-5a583aa3b309");
+    final int AppKeyHeartRate = 10000;
+
+    @Override
+    protected void onDestroy() {
+        hRR.releaseAccess();
+        super.onDestroy();
+    }
 
     private class AntServiceApi implements AntServices.AntApi {
 
@@ -130,6 +142,17 @@ public class MainActivity extends FlutterActivity {
                         // Call stream
                         new Handler(Looper.getMainLooper()).post(() -> heartRateStream.addEvent(dataState.getIntValue() + i));
 
+                        // Sending to pebble
+                        PebbleDictionary heartRateDic = new PebbleDictionary();
+
+
+                        heartRateDic.addInt32(AppKeyHeartRate,i);
+
+
+                        // Send the dictionary
+                        PebbleKit.sendDataToPebble(getApplicationContext(), appUuid, heartRateDic);
+
+
                     }
                 });
             }
@@ -151,14 +174,31 @@ public class MainActivity extends FlutterActivity {
             }
         }
     };
+    
+    // Pebble Time
+    
+    private class PebbleServiceApi implements PebbleServices.PebbleApi{
+
+        @NonNull
+        @Override
+        public Boolean pebbleConnectionStatus() {
+            boolean connected = PebbleKit.isWatchConnected(getApplicationContext());
+            return connected;
+        }
+    }
 
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Ant+
         AntServices.AntApi.setup(Objects.requireNonNull(getFlutterEngine()).getDartExecutor().getBinaryMessenger(), new AntServiceApi());
         antCallBacks = new AntServices.AntCallBacks(getFlutterEngine().getDartExecutor().getBinaryMessenger());
         new EventChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), heartRateChannel)
                 .setStreamHandler(heartRateStream);
+
+        // Pebble Side
+        PebbleServices.PebbleApi.setup(Objects.requireNonNull(getFlutterEngine()).getDartExecutor().getBinaryMessenger(), new PebbleServiceApi());
+        pebbleCallBacks = new PebbleServices.PebbleCallBacks(getFlutterEngine().getDartExecutor().getBinaryMessenger());
     }
 }

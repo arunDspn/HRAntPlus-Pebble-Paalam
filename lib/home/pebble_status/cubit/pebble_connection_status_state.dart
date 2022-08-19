@@ -8,3 +8,18 @@ class PebbleConnectionStatusInitial extends PebbleConnectionStatusState {
   @override
   List<Object> get props => [];
 }
+
+class PebbleConnectionStatusLoading extends PebbleConnectionStatusState {
+  @override
+  List<Object> get props => [];
+}
+
+class PebbleConnectionStatusConnected extends PebbleConnectionStatusState {
+  @override
+  List<Object> get props => [];
+}
+
+class PebbleConnectionStatusNotConnected extends PebbleConnectionStatusState {
+  @override
+  List<Object> get props => [];
+}

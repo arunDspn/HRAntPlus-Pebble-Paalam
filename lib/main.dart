@@ -1,5 +1,6 @@
 import 'package:ant_pebble_paalam/home/antplus_status/cubit/ant_plus_connection_status_cubit.dart';
 import 'package:ant_pebble_paalam/home/heart_rate_status/cubit/heart_rate_data_cubit.dart';
+import 'package:ant_pebble_paalam/home/pebble_status/cubit/pebble_connection_status_cubit.dart';
 import 'package:ant_pebble_paalam/search_devices/connect_ant_device_cubit/connect_ant_device_cubit.dart';
 import 'package:ant_pebble_paalam/search_devices/search_result_cubit/search_result_cubit.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,10 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider(
           create: (_) => HeartRateDataCubit(),
+        ),
+        BlocProvider(
+          create: (_) =>
+              PebbleConnectionStatusCubit()..requestConnectionStatus(),
         ),
       ],
       child: MaterialApp(

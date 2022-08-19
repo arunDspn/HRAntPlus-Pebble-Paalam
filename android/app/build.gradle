@@ -61,4 +61,5 @@ flutter {
 dependencies {
     implementation files('libs/fit_21.18.jar')
     implementation files('/home/arundas/dev_tester/ant_pebble_paalam/android/app/libs/antpluginlib_3-8-0.aar')
+    implementation 'com.getpebble:pebblekit:4.0.1'
 }
